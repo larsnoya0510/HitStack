@@ -11,7 +11,20 @@ import android.view.MotionEvent
 import android.os.SystemClock
 import android.view.MotionEvent.ACTION_DOWN
 import android.view.View
-
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.DataSource
+import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.load.resource.gif.GifDrawable
+import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.target.Target
+import android.R.attr.resource
+import android.graphics.drawable.Drawable
+import android.widget.ImageView
+import androidx.vectordrawable.graphics.drawable.Animatable2Compat
+import android.R.attr.resource
+import androidx.vectordrawable.graphics.drawable.AnimatedVectorDrawableCompat.registerAnimationCallback
+import com.bumptech.glide.request.target.CustomTarget
+import com.bumptech.glide.request.target.ViewTarget
 
 
 class MainActivity : AppCompatActivity() {
@@ -20,30 +33,187 @@ class MainActivity : AppCompatActivity() {
     var TOLEFT : Int =99
     var TORIGHT : Int =98
     var USER_TOUCH_TYPE_1 : Int =97
-
+    var hitState=false
+    var initGifLock=true
+    lateinit var gifLeft : ViewTarget<ImageView,GifDrawable>
+    lateinit var gifRight : ViewTarget<ImageView,GifDrawable>
+    lateinit var gifDust : ViewTarget<ImageView,GifDrawable>
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         woodsList = mutableListOf<Int>()
         initWood()
+        initHit()
         buttonReset.setOnClickListener { resetRecyclerView() }
         leftHitConstraintLayout.setOnClickListener {  leftHit() }
         rightHitConstraintLayout.setOnClickListener {  rightHit() }
     }
+
+    private fun initHit() {
+        initHitManLeft(R.drawable.hitrleftfix,imageViewHitLeft)
+        initHitManRight(R.drawable.hitrightfix,imageViewHitRight)
+        initDust()
+    }
+    private fun initHitManLeft(mDrawable : Int,mView:ImageView){
+        gifLeft=Glide.with(this).asGif().load(mDrawable).listener(object :
+            RequestListener<GifDrawable>{
+            override fun onLoadFailed(
+                e: GlideException?,
+                model: Any?,
+                target: Target<GifDrawable>?,
+                isFirstResource: Boolean
+            ): Boolean {
+                return false;
+            }
+
+            override fun onResourceReady(
+                resource: GifDrawable?,
+                model: Any?,
+                target: Target<GifDrawable>?,
+                dataSource: DataSource?,
+                isFirstResource: Boolean
+            ): Boolean {
+                resource?.setLoopCount(1)
+                resource?.registerAnimationCallback(object : Animatable2Compat.AnimationCallback() {
+                    override fun onAnimationEnd(drawable: Drawable?) {
+                           if(initGifLock==false) swipeFromLeft()
+                    }
+                })
+                return false
+            }
+
+        }).into(mView)
+
+    }
+    private fun initHitManRight(mDrawable : Int,mView:ImageView){
+        gifRight=Glide.with(this).asGif().load(mDrawable).listener(object :
+            RequestListener<GifDrawable>{
+            override fun onLoadFailed(
+                e: GlideException?,
+                model: Any?,
+                target: Target<GifDrawable>?,
+                isFirstResource: Boolean
+            ): Boolean {
+                return false;
+            }
+
+            override fun onResourceReady(
+                resource: GifDrawable?,
+                model: Any?,
+                target: Target<GifDrawable>?,
+                dataSource: DataSource?,
+                isFirstResource: Boolean
+            ): Boolean {
+                resource?.setLoopCount(1)
+                resource?.registerAnimationCallback(object : Animatable2Compat.AnimationCallback() {
+                    override fun onAnimationEnd(drawable: Drawable?) {
+                        if(initGifLock==false)  swipeFromRight()
+                    }
+                })
+                return false
+            }
+
+        }).into(mView)
+
+    }
+    private fun initDust() {
+//        Glide.with(this).asGif().load(R.drawable.dust).into(imageViewDust)
+        gifDust=Glide.with(this).asGif().load(R.drawable.dust).listener(object :
+            RequestListener<GifDrawable>{
+            override fun onLoadFailed(
+                e: GlideException?,
+                model: Any?,
+                target: Target<GifDrawable>?,
+                isFirstResource: Boolean
+            ): Boolean {
+                return false;
+            }
+
+            override fun onResourceReady(
+                resource: GifDrawable?,
+                model: Any?,
+                target: Target<GifDrawable>?,
+                dataSource: DataSource?,
+                isFirstResource: Boolean
+            ): Boolean {
+                resource?.setLoopCount(1)
+                resource?.registerAnimationCallback(object : Animatable2Compat.AnimationCallback() {
+                    override fun onAnimationEnd(drawable: Drawable?) {
+                        hitState = false
+                    }
+                })
+//                Thread(Runnable {
+//                    while (true) {
+//                        if (!resource!!.isRunning()) {
+//                            break
+//                        }
+//                    }
+//                }).start()
+                return false
+            }
+
+        }).into(imageViewDust)
+//        hitState = false
+    }
     private fun leftHit(){
-        analogUserScroll(hitAreaConstraintLayout,0,100F,hitAreaConstraintLayout.bottom*1F-100,hitAreaConstraintLayout.right*1F-50,hitAreaConstraintLayout.bottom*1F-100)
+        initGifLock=false
+        if(hitState!=true) {
+            hitState = true
+            gifLeft.onStart()
+        }
     }
+
+    private fun swipeFromLeft() {
+        analogUserScroll(
+            hitAreaConstraintLayout,
+            0,
+            100F,
+            hitAreaConstraintLayout.bottom * 1F - 100,
+            hitAreaConstraintLayout.right * 1F - 50,
+            hitAreaConstraintLayout.bottom * 1F - 100
+        ) {
+//            initDust()
+            gifDust.onStart()
+        }
+    }
+
     private fun rightHit(){
-        analogUserScroll(hitAreaConstraintLayout,0,hitAreaConstraintLayout.right*1F-50,hitAreaConstraintLayout.bottom*1F-100,100F,hitAreaConstraintLayout.bottom*1F-100)
+        initGifLock=false
+        if(hitState!=true) {
+            hitState = true
+            gifRight.onStart()
+        }
     }
+
+    private fun swipeFromRight() {
+        analogUserScroll(
+            hitAreaConstraintLayout,
+            0,
+            hitAreaConstraintLayout.right * 1F - 50,
+            hitAreaConstraintLayout.bottom * 1F - 100,
+            100F,
+            hitAreaConstraintLayout.bottom * 1F - 100
+        ) {
+//            initDust()
+            gifDust.onStart()
+        }
+    }
+
     private fun resetRecyclerView() {
         woodsList.clear()
         for (i in 0 until 10) {
             woodsList.add(i)
         }
         woodRecyclerViewAdapter.updateData(woodsList)
-//        woodRecyclerView.smoothScrollToPosition(woodRecyclerView.bottom)
-        woodRecyclerView.smoothScrollBy(0,woodRecyclerView.bottom)
+        woodRecyclerView.post {
+            woodRecyclerView.smoothScrollToPosition(0)
+        }
+//        woodRecyclerView.post {
+////            woodRecyclerView.smoothScrollToPosition(woodRecyclerView.bottom)
+//            woodRecyclerView.smoothScrollBy(0,woodRecyclerView.bottom)
+//        }
+
+//        woodRecyclerView.smoothScrollBy(0,woodRecyclerView.bottom)
     }
 
     private fun initWood() {
@@ -66,7 +236,7 @@ class MainActivity : AppCompatActivity() {
 
         woodRecyclerView.smoothScrollToPosition(woodRecyclerView.bottom)
     }
-    private fun analogUserScroll(view: View?, type: Int, p1x: Float, p1y: Float, p2x: Float, p2y: Float) {
+    private fun analogUserScroll(view: View?, type: Int, p1x: Float, p1y: Float, p2x: Float, p2y: Float,callback: () -> Unit) {
         if (view == null) {
             return
         }
@@ -144,6 +314,7 @@ class MainActivity : AppCompatActivity() {
             moveEvents.get(i).recycle()
         }
         upEvent.recycle()
+        callback.invoke()
     }
     private  fun getMoveEvent( downTime :Long,  evntTime :Long,  x : Float,  y: Float) : MotionEvent {
             var mdownTime=downTime
